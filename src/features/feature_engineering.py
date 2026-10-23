@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Union
 import pandas as pd
 import yaml
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 
 # Configure dual handlers: stdout console stream + persistent log file
 LOG_DIR = Path("logs")
@@ -83,16 +83,16 @@ def load_data(
         raise
 
 
-def apply_tfidf_features(
+def apply_BOW(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
     max_features: int,
     text_col: str = "content",
     label_col: str = "sentiment",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Apply TF-IDF feature extraction and reattach labels."""
+    """Apply Bag-of-Words feature extraction and reattach labels."""
     logger.info(
-        "Initializing TF-IDF extraction: max_features=%d, text_col='%s', label_col='%s'",
+        "Initializing Bag-of-Words extraction: max_features=%d, text_col='%s', label_col='%s'",
         max_features,
         text_col,
         label_col,
@@ -138,9 +138,9 @@ def apply_tfidf_features(
         X_test: pd.Series[str] = test_df[text_col].fillna("").astype(str)
 
         start_time = time.perf_counter()
-        vectorizer: TfidfVectorizer = TfidfVectorizer(max_features=max_features)
+        vectorizer: CountVectorizer = CountVectorizer(max_features=max_features)
 
-        logger.debug("Fitting TfidfVectorizer on training text...")
+        logger.debug("Fitting CountVectorizer on training text...")
         X_train_bow = vectorizer.fit_transform(X_train)
         logger.debug("Transforming test text using fitted vectorizer...")
         X_test_bow = vectorizer.transform(X_test)
@@ -186,7 +186,7 @@ def apply_tfidf_features(
         )
         raise
     except Exception:
-        logger.exception("Unexpected error encountered during TF-IDF feature extraction.")
+        logger.exception("Unexpected error encountered during Bag-of-Words feature extraction.")
         raise
 
 
@@ -196,8 +196,8 @@ def save_processed_data(
     """Save processed feature datasets to disk."""
     try:
         os.makedirs(output_dir, exist_ok=True)
-        train_out = os.path.join(output_dir, "train_tfidf.csv")
-        test_out = os.path.join(output_dir, "test_tfidf.csv")
+        train_out = os.path.join(output_dir, "train_bow.csv")
+        test_out = os.path.join(output_dir, "test_bow.csv")
 
         logger.info("Writing train features to: %s", train_out)
         train_df.to_csv(train_out, index=False)
@@ -239,15 +239,15 @@ def main() -> None:
             test_path=os.path.join("data", "interim", "test_processed.csv"),
         )
 
-        train_tfidf_df, test_tfidf_df = apply_tfidf_features(
+        train_bow_df, test_bow_df = apply_BOW(
             train_df=train_data,
             test_df=test_data,
             max_features=max_features,
         )
 
         save_processed_data(
-            train_df=train_tfidf_df,
-            test_df=test_tfidf_df,
+            train_df=train_bow_df,
+            test_df=test_bow_df,
             output_dir=os.path.join("data", "processed"),
         )
 
